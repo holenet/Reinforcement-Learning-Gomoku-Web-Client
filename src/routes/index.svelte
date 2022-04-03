@@ -1,4 +1,5 @@
 <script>
+	import '../app.css';
 	import Board from '$lib/Board.svelte';
 	import Lobby from '$lib/Lobby.svelte';
 	import ArenaForm from '$lib/ArenaForm.svelte';
