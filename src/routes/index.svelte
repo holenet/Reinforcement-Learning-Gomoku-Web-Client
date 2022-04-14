@@ -3,7 +3,7 @@
 	import Board from '$lib/Board.svelte';
 	import Lobby from '$lib/Lobby.svelte';
 	import ArenaForm from '$lib/ArenaForm.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 
 	const initialArenaState = () => ({
 		id: null,
@@ -22,18 +22,18 @@
 		board: []
 	});
 
-	let isCreatingArena = false;
-	let arenaList = [];
-	let userColor = null;
-	let arenaState = initialArenaState();
-	let gameState = initialGameState();
-	let isConnected = null;
-	let log = '';
-
+	let isCreatingArena;
+	let arenaList;
+	let userColor;
+	let arenaState;
+	let gameState;
+	let isConnected;
+	let log;
 	let logArea;
 	let ws;
 
 	const BLACK = 1;
+
 	$: isSpectator = userColor === 0;
 	$: gameStatusMessage = (() => {
 		if (gameState.isGameOver) {
@@ -59,10 +59,10 @@
 
 	$: connectionStatusMessage = (() => {
 		if (isConnected === null) return 'Connecting...';
-		else return isConnected ? 'Connected' : 'DisConnected';
+		else return isConnected ? 'Connected' : 'Disconnected';
 	})();
 
-	function reset() {
+	async function init() {
 		isCreatingArena = false;
 		arenaList = [];
 		userColor = null;
@@ -78,7 +78,7 @@
 			isConnected = false;
 		};
 		ws.onerror = (m) => alert('An error occurred.');
-		ws.onmessage = (m) => {
+		ws.onmessage = async (m) => {
 			const message = JSON.parse(m.data);
 			if (message.type === 'ARENA_LIST') {
 				arenaList = message.data.arenas;
@@ -86,10 +86,10 @@
 				arenaState = {
 					...message.data
 				};
-				isCreatingArena = false;
+				hideArenaCreationForm();
 			} else if (message.type === 'START_GAME') {
 				userColor = message.data.color;
-				isCreatingArena = false;
+				hideArenaCreationForm();
 			} else if (message.type === 'GAME_STATE' || message.type === 'REQUEST_MOVE') {
 				gameState = {
 					...message.data,
@@ -99,9 +99,15 @@
 			log += `[${getCurrentTime()}] ${message.type}: ${
 				message.message ?? JSON.stringify(message.data).substring(0, 50) + '...'
 			}\n`;
-			setTimeout(() => (logArea.scrollTop = logArea.scrollHeight), 1);
+
 		};
+		await tick();
+		scrollLogArea();
 	}
+
+	function scrollLogArea() {
+		logArea.scrollTop = logArea.scrollHeight)
+	};
 
 	function getCurrentTime() {
 		const now = new Date();
@@ -119,10 +125,6 @@
 				data: message
 			})
 		);
-	}
-
-	function close() {
-		if (ws) ws.close();
 	}
 
 	function move(event) {
@@ -153,15 +155,15 @@
 		});
 	}
 
-	function showCreateArena() {
+	function showArenaCreationForm() {
 		isCreatingArena = true;
 	}
 
-	function hideCreateArena() {
+	function hideArenaCreationForm() {
 		isCreatingArena = false;
 	}
 
-	onMount(reset);
+	onMount(init);
 
 	onbeforeunload = function () {
 		if (ws) ws.close();
@@ -179,7 +181,7 @@
 	<div>
 		Server {connectionStatusMessage}
 		{#if isConnected === false || arenaState.id === null}
-			<button on:click|preventDefault={reset}>RESET</button>
+			<button on:click|preventDefault={init}>RESET</button>
 		{/if}
 	</div>
 </div>
@@ -204,16 +206,16 @@
 				</div>
 				<div class="info-header__buttons">
 					{#if arenaState.id === null && !isCreatingArena}
-						<button on:click|preventDefault={showCreateArena}>CREATE ARENA</button>
+						<button on:click|preventDefault={showArenaCreationForm}>CREATE ARENA</button>
 					{/if}
 					{#if isCreatingArena}
-						<button on:click|preventDefault={hideCreateArena}>CLOSE</button>
+						<button on:click|preventDefault={hideArenaCreationForm}>CLOSE</button>
 					{/if}
 					{#if gameState.isMyTurn}
 						<button on:click|preventDefault={pass}>PASS</button>
 					{/if}
 					{#if arenaState.id !== null}
-						<button on:click|preventDefault={reset}>EXIT</button>
+						<button on:click|preventDefault={init}>EXIT</button>
 					{/if}
 				</div>
 			</div>
