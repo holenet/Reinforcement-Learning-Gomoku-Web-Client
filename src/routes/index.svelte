@@ -13,7 +13,7 @@
 		spectators: 0
 	});
 	const initialGameState = () => ({
-		winner: null,
+		winnerColor: null,
 		lastMove: null,
 		isGameOver: false,
 		nextTurn: null,
@@ -24,45 +24,58 @@
 
 	let isCreatingArena = false;
 	let arenaList = [];
-	let color = null;
+	let userColor = null;
 	let arenaState = initialArenaState();
 	let gameState = initialGameState();
-	let connected = null;
+	let isConnected = null;
 	let log = '';
 
 	let logArea;
 	let ws;
 
-	$: gameStatus = gameState.isGameOver
-		? gameState.winner === color
-			? 'You win!'
-			: gameState.winner === -color
-			? 'You lose!'
-			: gameState.winner === null
-			? 'Draw!'
-			: `${gameState.winner === 1 ? 'BLACK' : 'WHITE'} win!`
-		: gameState.isMyTurn
-		? 'Your turn'
-		: color === 0
-		? `${gameState.nextTurn === 1 ? 'BLACK' : 'WHITE'} turn`
-		: 'Waiting opponent...';
-	$: connectionStatus =
-		connected === null ? 'Connecting...' : connected ? 'Connected' : 'Disconnected';
+	const BLACK = 1;
+	$: isSpectator = userColor === 0;
+	$: gameStatusMessage = (() => {
+		if (gameState.isGameOver) {
+			if (isSpectator) {
+				return `${gameState.winnerColor === BLACK ? 'BLACK' : 'WHITE'} win!`;
+			} else {
+				if (gameState.winnerColor === userColor) {
+					return 'You win!';
+				} else if (gameState.winnerColor === -userColor) {
+					return 'You lose!';
+				} else {
+					return 'Draw!';
+				}
+			}
+		} else {
+			if (isSpectator) {
+				return `${gameState.nextTurn === BLACK ? 'BLACK' : 'WHITE'} turn`;
+			} else {
+				return gameState.isMyTurn ? 'Your turn' : 'Waiting opponent...';
+			}
+		}
+	})();
+
+	$: connectionStatusMessage = (() => {
+		if (isConnected === null) return 'Connecting...';
+		else return isConnected ? 'Connected' : 'DisConnected';
+	})();
 
 	function reset() {
 		isCreatingArena = false;
 		arenaList = [];
-		color = null;
+		userColor = null;
 		arenaState = initialArenaState();
 		gameState = initialGameState();
-		connected = null;
+		isConnected = null;
 		log = '';
 
 		if (ws) ws.close();
 		ws = new WebSocket('ws://dev.holenet.net:5000');
-		ws.onopen = (m) => (connected = true);
+		ws.onopen = (m) => (isConnected = true);
 		ws.onclose = (m) => {
-			connected = false;
+			isConnected = false;
 		};
 		ws.onerror = (m) => alert('An error occurred.');
 		ws.onmessage = (m) => {
@@ -75,12 +88,12 @@
 				};
 				isCreatingArena = false;
 			} else if (message.type === 'START_GAME') {
-				color = message.data.color;
+				userColor = message.data.color;
 				isCreatingArena = false;
 			} else if (message.type === 'GAME_STATE' || message.type === 'REQUEST_MOVE') {
 				gameState = {
 					...message.data,
-					isMyTurn: message.data.nextTurn === color
+					isMyTurn: message.data.nextTurn === userColor
 				};
 			}
 			log += `[${getCurrentTime()}] ${message.type}: ${
@@ -96,7 +109,7 @@
 	}
 
 	function sendMessage(type, message = null) {
-		if (!connected || !ws) {
+		if (!isConnected || !ws) {
 			window.location.reload();
 			return;
 		}
@@ -164,8 +177,8 @@
 		{/if}
 	</div>
 	<div>
-		Server {connectionStatus}
-		{#if connected === false || arenaState.id === null}
+		Server {connectionStatusMessage}
+		{#if isConnected === false || arenaState.id === null}
 			<button on:click|preventDefault={reset}>RESET</button>
 		{/if}
 	</div>
@@ -173,7 +186,7 @@
 <div class="container">
 	<div class="split-item">
 		{#if arenaState.id !== null}
-			<Board {color} {...gameState} on:move={move} />
+			<Board color={userColor} {...gameState} on:move={move} />
 		{:else if isCreatingArena}
 			<ArenaForm on:submit={createArena} />
 		{:else}
@@ -186,7 +199,7 @@
 				<div class="info-header__text">
 					{#if arenaState.id !== null}
 						<div>{arenaState.agents} agents, {arenaState.spectators} spectators</div>
-						<div>{gameStatus}</div>
+						<div>{gameStatusMessage}</div>
 					{/if}
 				</div>
 				<div class="info-header__buttons">
