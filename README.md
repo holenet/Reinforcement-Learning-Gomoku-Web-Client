@@ -1,40 +1,12 @@
-# create-svelte
+# 오목 강화학습 웹 클라이언트
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+> Server Repo: https://github.com/heatz123/Reinforcement-Learning-Gomoku
 
-## Creating a project
+- 서버의 AI를 테스트하기 위한 웹 클라이언트입니다.
+- 다음 모드를 지원합니다.
+  - AI vs AI
+  - AI vs Human
+  - Human vs Human
+  - 관전 기능
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npm init svelte@next
-
-# create a new project in my-app
-npm init svelte@next my-app
-```
-
-> Note: the `@next` is temporary
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+![Screenshot_20220328-075542_Samsung Internet](https://user-images.githubusercontent.com/24453019/223160900-065d7ebc-e481-4040-b85e-5330b48b765f.png)
